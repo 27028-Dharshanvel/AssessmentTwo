@@ -18,6 +18,8 @@ namespace AssessmentTwo.View
         {
             bool isAppRunning = true;
             notificationService.OnTimerElapsed += DisplayNotification;
+            notificationService.timer.Elapsed += DisplayCountDown;
+            notificationService.timer.Start();
 
             await Logger.LogEventAsync("Boiler Initialized");
 
@@ -117,12 +119,22 @@ Select a choice : ");
             string blankline = new string(' ', Console.WindowWidth / 2);
             var currentCursorPosition = Console.GetCursorPosition();
             Console.SetCursorPosition(0, 0);
-            for (int i = 0; i < Console.WindowHeight / 2; i++)
+            for (int i = 0; i < Console.WindowHeight; i++)
             {
                 Console.WriteLine(blankline);
                 Console.SetCursorPosition(0, i);
             }
             Console.SetCursorPosition(0, 0);
+        }
+
+        public void DisplayCountDown(object? sender, ElapsedEventArgs e)
+        {
+            TimeOnly time = TimeOnly.FromDateTime(DateTime.Now);
+            string customTime = time.ToString("HH:mm:ss");
+            var currentCursorPosition = Console.GetCursorPosition();
+            Console.SetCursorPosition(Console.WindowWidth - 8, 2);
+            Console.Write(customTime);
+            Console.SetCursorPosition(currentCursorPosition.Item1, currentCursorPosition.Item2);
         }
     }
 }

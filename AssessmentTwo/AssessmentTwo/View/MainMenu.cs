@@ -1,5 +1,6 @@
 ﻿using System.Timers;
 using AssessmentTwo.Helper;
+using AssessmentTwo.Repositories;
 using AssessmentTwo.Services;
 
 namespace AssessmentTwo.View
@@ -8,17 +9,19 @@ namespace AssessmentTwo.View
     {
         private BoilerService boilerService;
         private NotificationService notificationService;
-        public MainMenu(BoilerService boilerservice, NotificationService notificationservice) 
+        public MainMenu(BoilerService boilerservice, NotificationService notificationservice)
         {
             this.boilerService = boilerservice;
             this.notificationService = notificationservice;
         }
-        public void DisplayMainMenu()
+        public async Task DisplayMainMenu()
         {
             bool isAppRunning = true;
             notificationService.OnTimerElapsed += DisplayNotification;
             notificationService.timer.Elapsed += DisplayCountDown;
             notificationService.timer.Start();
+
+            await Logger.LogEventAsync("Boiler Initialized");
 
             while (isAppRunning)
             {
@@ -27,66 +30,75 @@ namespace AssessmentTwo.View
 
 1.Start Boiler Sequence
 2.Stop Boiler Sequence
-3.Toggle Interlock
-4.Reset Lockout
-5.View Event Log
-6.Exit
+3.Simulate Boiler Error
+4.Toggle Interlock
+5.Reset Lockout
+6.View Event Log
+7.Exit
 
 Select a choice : ");
 
                 if (!InputValidator.IsValidInt(Console.ReadLine(), out int choice))
                 {
                     Console.WriteLine("Select a valid integer");
+                    Console.ReadKey();
                     continue;
                 }
 
-                if (!InputValidator.IsIntWithinRange(choice, 1, 6))
+                if (!InputValidator.IsIntWithinRange(choice, 1, 7))
                 {
                     Console.WriteLine("Select integer within range");
+                    Console.ReadKey();
                     continue;
                 }
 
                 switch (choice)
                 {
                     case 1:
-                        {
-                            Result result = boilerService.StartBoiler();
-                            if (result.IsSuccess)
-                            {
-                                Console.WriteLine("Boiler sequence started");
-                                break;
-                            }
-                            Console.WriteLine(result.ErrorMessage);
-                            break;
-                        }
+                        var startResult = boilerService.StartBoiler();
+                        if (!startResult.IsSuccess)
+                            Console.WriteLine(startResult.ErrorMessage);
+                        break;
 
                     case 2:
-                        {
-                            Result result = boilerService.StopBoiler();
-                            if (result.IsSuccess)
-                            {
-                                Console.WriteLine("Boiler stopped");
-                                break;
-                            }
-                            Console.WriteLine(result.ErrorMessage);
-                            break;
-                        }
+                        var stopResult = boilerService.StopBoiler();
+                        if (!stopResult.IsSuccess)
+                            Console.WriteLine(stopResult.ErrorMessage);
+                        break;
 
                     case 3:
-                        bool currentInterLockStatus = boilerService.ToggleInterLock();
-                        Console.WriteLine($"Interlock is toggled - Current Status : {currentInterLockStatus}");
+                        var errorResult = boilerService.SimulateError();
+                        if (!errorResult.IsSuccess)
+                            Console.WriteLine(errorResult.ErrorMessage);
+                        else
+                            Console.WriteLine("Error: Simulated Error. System in Lockout.");
                         break;
 
                     case 4:
-                        boilerService.ResetLockout();
-                        Console.WriteLine("SYSTEM IN LOCKOUT STATE");
+                        bool currentInterLockStatus = boilerService.ToggleInterLock();
+                        string statusStr = currentInterLockStatus ? "Closed" : "Open";
+                        Console.WriteLine($"Interlock is toggled - Current Status : {statusStr}");
+                        await Logger.LogEventAsync("Interlock Switch toggled to " + statusStr);
                         break;
 
                     case 5:
-                        //To Do : Event log
+                        var resetResult = boilerService.ResetLockout();
+                        if (resetResult.IsSuccess)
+                        {
+                            Console.WriteLine("Boiler Status changed to Ready");
+                            await Logger.LogEventAsync("Boiler Status changed to Ready");
+                        }
+                        else
+                        {
+                            Console.WriteLine(resetResult.ErrorMessage);
+                        }
                         break;
 
                     case 6:
+                        await Logger.ViewLogAsync();
+                        break;
+
+                    case 7:
                         isAppRunning = false;
                         break;
                 }
@@ -107,12 +119,12 @@ Select a choice : ");
             string blankline = new string(' ', Console.WindowWidth / 2);
             var currentCursorPosition = Console.GetCursorPosition();
             Console.SetCursorPosition(0, 0);
-            for(int i = 0; i< Console.WindowHeight/2; i++)
+            for (int i = 0; i < Console.WindowHeight; i++)
             {
                 Console.WriteLine(blankline);
-                Console.SetCursorPosition(0,i);
+                Console.SetCursorPosition(0, i);
             }
-            Console.SetCursorPosition(0,0);
+            Console.SetCursorPosition(0, 0);
         }
 
         public void DisplayCountDown(object? sender, ElapsedEventArgs e)
@@ -120,7 +132,7 @@ Select a choice : ");
             TimeOnly time = TimeOnly.FromDateTime(DateTime.Now);
             string customTime = time.ToString("HH:mm:ss");
             var currentCursorPosition = Console.GetCursorPosition();
-            Console.SetCursorPosition(Console.WindowWidth - 8, Console.WindowHeight - 8);
+            Console.SetCursorPosition(Console.WindowWidth - 8, 2);
             Console.Write(customTime);
             Console.SetCursorPosition(currentCursorPosition.Item1, currentCursorPosition.Item2);
         }

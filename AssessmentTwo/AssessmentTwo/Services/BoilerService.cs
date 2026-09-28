@@ -14,15 +14,23 @@ namespace AssessmentTwo.Services
 
         NotificationService notificationService;
         private Repository repository;
-        System.Timers.Timer prepurgetimer = new System.Timers.Timer(3000);
-        System.Timers.Timer ignitiontimer = new System.Timers.Timer(3000);
+        System.Timers.Timer prepurgetimer = new System.Timers.Timer(10000);
+        System.Timers.Timer ignitiontimer = new System.Timers.Timer(10000);
 
 
         public Result StartBoiler()
         {
+            if (repository.GetBoiler().LockOut)
+            {
+                return Result.Failure("System is in Lockout state. Please reset lockout first.");
+            }
             if (!GetInterLockStatus())
             {
                 return Result.Failure("Toggle Interlock before starting the boiler");
+            }
+            if (repository.GetBoiler().BoilerStatus != BoilerState.Idle)
+            {
+                return Result.Failure("Boiler is already running.");
             }
             StartPrePurge();
             return Result.Success();
@@ -44,33 +52,35 @@ namespace AssessmentTwo.Services
 
         public void OnPrePurgeTimerElapsed(object? sender, ElapsedEventArgs e)
         {
-            string message = "Pre - purge completed";
-            Logger.WriteLog("[INFO] "+ message + $" at {DateTime.Now}");
+            string message = "Pre-Purge completed.";
             notificationService.Execute(message);
+            _ = Logger.LogEventAsync(message);
             prepurgetimer.Stop();
+            prepurgetimer.Elapsed -= OnPrePurgeTimerElapsed;
             StartIgnition();
         }
 
         public void OnIgnitionTimerElapsed(object? sender, ElapsedEventArgs e)
         {
-            string message = "Ignition completed";
-            Logger.WriteLog("[INFO] " + message + $"at {DateTime.Now}");
+            string message = "Ignition phase completed.";
             notificationService.Execute(message);
+            _ = Logger.LogEventAsync(message);
             ignitiontimer.Stop();
+            ignitiontimer.Elapsed -= OnIgnitionTimerElapsed;
             StartOperational();
         }
 
         public void StartOperational()
         {
             repository.GetBoiler().BoilerStatus = BoilerState.Operational;
-            string message = "Boiler in operational state";
-            Logger.WriteLog("[INFO] "+ message + $"at {DateTime.Now}");
+            string message = "Boiler now operational.";
             notificationService.Execute(message);
+            _ = Logger.LogEventAsync(message);
         }
 
         public Result StopBoiler()
         {
-            if(repository.GetBoiler().BoilerStatus == BoilerState.Idle)
+            if (repository.GetBoiler().BoilerStatus == BoilerState.Idle)
             {
                 return Result.Failure("Boiler is Idle. Start the boiler before using stop");
             }
@@ -81,21 +91,35 @@ namespace AssessmentTwo.Services
             return Result.Success();
         }
 
+        public Result SimulateError()
+        {
+            if (repository.GetBoiler().BoilerStatus != BoilerState.Operational)
+            {
+                return Result.Failure("Error can only be simulated when the boiler is in Operational mode.");
+            }
+
+            prepurgetimer.Stop();
+            ignitiontimer.Stop();
+            repository.GetBoiler().BoilerStatus = BoilerState.Idle;
+            repository.GetBoiler().LockOut = true;
+            _ = Logger.LogEventAsync("Error", "Simulated Error. System in Lockout.");
+            return Result.Success();
+        }
+
         public bool ToggleInterLock()
         {
-            if (repository.GetBoiler().InterLock)
-            {
-                repository.GetBoiler().InterLock = false;
-            }
-            repository.GetBoiler().InterLock = true;
+            repository.GetBoiler().InterLock = !repository.GetBoiler().InterLock;
             return repository.GetBoiler().InterLock;
-        } 
+        }
 
-        public bool ResetLockout()
+        public Result ResetLockout()
         {
-            repository.GetBoiler().LockOut = true;
-            Logger.WriteLog($"Boiler System in Lockout State at {DateTime.Now}");
-            return true;
+            if (!repository.GetBoiler().InterLock)
+            {
+                return Result.Failure("Please close the interlock switch before resetting lockout.");
+            }
+            repository.GetBoiler().LockOut = false;
+            return Result.Success();
         }
 
 

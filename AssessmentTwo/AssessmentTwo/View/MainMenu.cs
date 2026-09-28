@@ -1,5 +1,6 @@
-﻿using AssessmentTwo.Services;
+﻿using System.Timers;
 using AssessmentTwo.Helper;
+using AssessmentTwo.Services;
 
 namespace AssessmentTwo.View
 {
@@ -16,6 +17,9 @@ namespace AssessmentTwo.View
         {
             bool isAppRunning = true;
             notificationService.OnTimerElapsed += DisplayNotification;
+            notificationService.timer.Elapsed += DisplayCountDown;
+            notificationService.timer.Start();
+
             while (isAppRunning)
             {
                 ClearMenu();
@@ -45,12 +49,28 @@ Select a choice : ");
                 switch (choice)
                 {
                     case 1:
-                        boilerService.StartPrePurge();
-                        break;
+                        {
+                            Result result = boilerService.StartBoiler();
+                            if (result.IsSuccess)
+                            {
+                                Console.WriteLine("Boiler sequence started");
+                                break;
+                            }
+                            Console.WriteLine(result.ErrorMessage);
+                            break;
+                        }
 
                     case 2:
-                        boilerService.StopBoiler();
-                        break;
+                        {
+                            Result result = boilerService.StopBoiler();
+                            if (result.IsSuccess)
+                            {
+                                Console.WriteLine("Boiler stopped");
+                                break;
+                            }
+                            Console.WriteLine(result.ErrorMessage);
+                            break;
+                        }
 
                     case 3:
                         bool currentInterLockStatus = boilerService.ToggleInterLock();
@@ -93,6 +113,16 @@ Select a choice : ");
                 Console.SetCursorPosition(0,i);
             }
             Console.SetCursorPosition(0,0);
+        }
+
+        public void DisplayCountDown(object? sender, ElapsedEventArgs e)
+        {
+            TimeOnly time = TimeOnly.FromDateTime(DateTime.Now);
+            string customTime = time.ToString("HH:mm:ss");
+            var currentCursorPosition = Console.GetCursorPosition();
+            Console.SetCursorPosition(Console.WindowWidth - 8, Console.WindowHeight - 8);
+            Console.Write(customTime);
+            Console.SetCursorPosition(currentCursorPosition.Item1, currentCursorPosition.Item2);
         }
     }
 }

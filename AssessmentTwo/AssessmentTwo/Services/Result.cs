@@ -1,4 +1,4 @@
-﻿namespace AssessmentTwo.Models;
+﻿namespace AssessmentTwo.Services;
 
 public class Result
 {

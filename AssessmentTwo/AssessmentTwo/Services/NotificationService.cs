@@ -11,5 +11,8 @@
         {
             OnTimerElapsed?.Invoke(message);
         }
+
+        public System.Timers.Timer timer = new System.Timers.Timer(1000);
+
     }
 }

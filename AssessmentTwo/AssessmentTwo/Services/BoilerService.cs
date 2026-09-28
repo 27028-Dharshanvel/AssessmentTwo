@@ -45,6 +45,7 @@ namespace AssessmentTwo.Services
         public void OnPrePurgeTimerElapsed(object? sender, ElapsedEventArgs e)
         {
             string message = "Pre - purge completed";
+            Logger.WriteLog("[INFO] "+ message + $" at {DateTime.Now}");
             notificationService.Execute(message);
             prepurgetimer.Stop();
             StartIgnition();
@@ -53,6 +54,7 @@ namespace AssessmentTwo.Services
         public void OnIgnitionTimerElapsed(object? sender, ElapsedEventArgs e)
         {
             string message = "Ignition completed";
+            Logger.WriteLog("[INFO] " + message + $"at {DateTime.Now}");
             notificationService.Execute(message);
             ignitiontimer.Stop();
             StartOperational();
@@ -62,6 +64,7 @@ namespace AssessmentTwo.Services
         {
             repository.GetBoiler().BoilerStatus = BoilerState.Operational;
             string message = "Boiler in operational state";
+            Logger.WriteLog("[INFO] "+ message + $"at {DateTime.Now}");
             notificationService.Execute(message);
         }
 
@@ -72,6 +75,8 @@ namespace AssessmentTwo.Services
                 return Result.Failure("Boiler is Idle. Start the boiler before using stop");
             }
 
+            prepurgetimer.Stop();
+            ignitiontimer.Stop();
             repository.GetBoiler().BoilerStatus = BoilerState.Idle;
             return Result.Success();
         }
@@ -89,6 +94,7 @@ namespace AssessmentTwo.Services
         public bool ResetLockout()
         {
             repository.GetBoiler().LockOut = true;
+            Logger.WriteLog($"Boiler System in Lockout State at {DateTime.Now}");
             return true;
         }
 

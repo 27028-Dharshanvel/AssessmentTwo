@@ -7,6 +7,10 @@
     {
         public event Action<string> OnTimerElapsed;
 
+        /// <summary>
+        /// Invoke the methods subscribed to the event.
+        /// </summary>
+        /// <param name="message"></param>
         public void Execute(string message)
         {
             OnTimerElapsed?.Invoke(message);

@@ -4,6 +4,12 @@
     {
         private static readonly string filePath = "BoilerLog.txt";
 
+        /// <summary>
+        /// Logs the events asynchronously.
+        /// </summary>
+        /// <param name="eventName">Event that needs to be logged</param>
+        /// <param name="eventData">Event data</param>
+        /// <returns></returns>
         public static async Task LogEventAsync(string eventName, string eventData = "")
         {
             try
@@ -16,28 +22,29 @@
                         await streamWriter.WriteLineAsync("Timestamp,Event,Event Data");
                     }
                     string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    await streamWriter.WriteLineAsync($"{timestamp},{eventName},{eventData}");
+                    await streamWriter.WriteLineAsync($"{timestamp},[INFO] : {eventName},{eventData}");
                 }
             }
             catch (Exception ex)
             {
-                // Handle logging failure
+                Console.WriteLine("Unexpected Error occured!");
             }
         }
 
-        public static async Task ViewLogAsync()
+        /// <summary>
+        /// Views the logged data asynchronously
+        /// </summary>
+        /// <returns>Task</returns>
+        public static async Task<string[]> ViewLogAsync()
         {
             if (File.Exists(filePath))
             {
                 string[] lines = await File.ReadAllLinesAsync(filePath);
-                foreach (var line in lines)
-                {
-                    Console.WriteLine(line);
-                }
+                return lines;
             }
             else
             {
-                Console.WriteLine("Log file does not exist.");
+                return null;
             }
         }
     }

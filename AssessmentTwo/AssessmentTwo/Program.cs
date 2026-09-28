@@ -4,17 +4,16 @@ using AssessmentTwo.View;
 
 namespace AssessmentTwo
 {
-    internal class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
-            
+
             NotificationService notificationService = new NotificationService();
             Repository repository = new Repository();
-            BoilerService boilerService = new BoilerService( notificationService, repository);
+            BoilerService boilerService = new BoilerService(notificationService, repository);
             MainMenu mainMenu = new MainMenu(boilerService, notificationService);
-            mainMenu.DisplayMainMenu();
-            Console.ReadKey();
+            await mainMenu.DisplayMainMenu();
         }
     }
 }
